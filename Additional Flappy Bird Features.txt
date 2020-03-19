@@ -1,0 +1,14 @@
+﻿1. Have different coloured pipes that represent different amount of points which increment the points counter by different amounts (prerequisite: score counter), level counter
+2. Have pipes with multiple passageways
+3. Text notifications (“Great!” “Wow!”) and for death (“Game Over!!!”)
+4. High Score
+
+
+
+
+Chris’s top three
+
+
+
+
+Sukhman’s top three
