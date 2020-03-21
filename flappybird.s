@@ -4,8 +4,8 @@
 # University of Toronto Mississauga
 #
 # Group members:
-# - Student 1: Name, Student Number
-# - Student 2 : (if any): Name, Student Number
+# - Student 1: Christopher Indris, 1004880159
+# - Student 2 : Sukhman Vig, 1005256599
 #
 # Bitmap Display Configuration:
 # - Unit width in pixels: 8					     
@@ -90,31 +90,23 @@ ENDGRASS:
 	addi $s1, $t0, 124
 	addi $s2, $t0, 0
 	
-	addi $s3, $t0, 0 # top of pipe
-	addi $s4, $t0, 29 # bottom of pipe + 1
+	addi $s3, $0, 0 # 0
+	addi $s4, $0, 3712 # 3840
 STARTSQUARE:
 	beq $s1, $s2, ENDSQUARE
 	#pipe
-	STARTBLUE:	
-		beq $s3, $s4, ENDBLUE
-		mult $s3, $s7 # store $s3 * 128 into hi and lo (hi takes upper bits, lo takes lower bits)
-		mflo $s5 # $s5 = lo = $s3 * $s7 = $s3 * 128
-		add $s5, $s5, $s1 # $s5 = $s1 + $s5 = $s1 + ($s3 * 128)
-		sw $t3, 0($s5) # $s1 + $s3 * 128 (Make this square blue)
-		addi $s3, $s3, 1
-		j STARTBLUE
-	ENDBLUE:
 	addi $s1, $s1, -4
-	li $s3, 0
-	STARTORANGE:
-		beq $s3, $s4, ENDORANGE
-		mult $s3, $s7 # store $s3 * 128 into hi and lo (hi takes upper bits, lo takes lower bits)
-		mflo $s5 # $s5 = lo = $s3 * $s7 = $s3 * 128
-		add $s5, $s5, $s1 # $s5 = $s1 + $s5 = $s1 + ($s3 * 128)
-		sw $t4, 0($s5) # $s1 + $s3 * 128 (Make this square orange)
-		addi $s3, $s3, 1
-		j STARTORANGE
-	ENDORANGE:
+	addi $s3, $zero, 0
+	addi $s6, $zero, 0
+ORG:
+	beq $s3, $s4, ENDORG
+	add $s6, $s1, $s3
+	sw $t4, -4($s6)
+	sw $t4, 0($s6) # 0 + $s6 = 0 + $s3 + $s1
+	sw $t3, 4($s6) # 4 + $s6
+	addi $s3, $s3, 128
+	j ORG
+ENDORG:
 	syscall # after the pipe is painted, we pause for 1 second.
 	j STARTSQUARE
 ENDSQUARE:
