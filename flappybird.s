@@ -46,7 +46,7 @@
 .data
 	displayAddress:	.word	0x10008000
 	#Sky: #33ccff (blue)
-	#Bird: #ff3300 (red)
+	#Bird: #771b80 (purple)
 	#Pipe: #ff9933 (orange)
 	#Grass/Ground: #339933 (green)
 .text
@@ -67,8 +67,12 @@ SQUARES:
 	
 	j trash
 	PAUSE:
-	
+		
 STARTSQUARE:
+
+	j birdpaint
+	RESUME:
+	
 	beq $s1, $s2, Exit
 	#pipe
 	addi $s1, $s1, -4
@@ -91,15 +95,16 @@ ENDORG:
 ENDSQUARE:
 
 initialize:	
-		lw $t0, displayAddress	# $t0 stores the base address for display
-		li $t1, 0xff3300	# $t1 stores the red colour code
-		li $t2, 0x339933	# $t2 stores the green colour code
-		li $t3, 0x33ccff	# $t3 stores the blue colour code
-		li $t4, 0xff9933	# $t4 stores the orange colour code
+	lw $t0, displayAddress	# $t0 stores the base address for display
+	li $t1, 0x771b80	# $t1 stores the purple colour code (bird)
+	li $t2, 0x339933	# $t2 stores the green colour code (grass)
+	li $t3, 0x33ccff	# $t3 stores the blue colour code (sky)
+	li $t4, 0xff9933	# $t4 stores the orange colour code (pipe)
 	
   		# Board Setup: Paint Sky and Grass
-		add $s1, $t0, $zero
-		addi $s2, $t0, 3712
+	add $s1, $t0, $zero
+	addi $s2, $t0, 3712
+	
 	STARTSKY:
 		beq $s1, $s2, ENDSKY # if $s1 has reached $s2, leave the loop.
 		sw $t3, 0($s1) # store $t2 (green) at $s1 ($s1 + 0 = $s1)
@@ -116,7 +121,16 @@ initialize:
 		addi $s1, $s1, 4 # $s1 = $s1 + 4  
 		j STARTGRASS
 	ENDGRASS:
-		j SQUARES
+	
+	# Bird
+	sw $t1, 1032($t0)
+	sw $t1, 1160($t0)
+	sw $t1, 1288($t0)
+	sw $t1, 1164($t0)
+	li $t8, 1160 
+	
+	j SQUARES
+	
 ENDinitialize:
 
 # TRASH Function: This function will check 
@@ -141,7 +155,35 @@ trash:
 	trash_DONE:
 		addi $s3, $0, 0				# set $s3 back to 0.
 		j PAUSE				# exit function, return to next task.
-ENDtrash:	
+ENDtrash:
+
+# BIRDPAINT Function:
+birdpaint:
+	# colour current locations blue
+	# $t8 += 128 
+	# colour new locations purple
+	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
+	
+	sw $t3, -128($t0)
+	sw $t3, 0($t0)
+	sw $t3, 4($t0)
+	sw $t3, 128($t0)
+	
+	sub $t0, $t0, $t8	# restore $t0
+	
+	addi $t8, $t8, 128
+	
+	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
+	
+	sw $t1, -128($t0)
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 128($t0)
+	
+	sub $t0, $t0, $t8	# restore $t0
+	j RESUME
+	#sw $t3, 0($s1)
+ENDbirdpaint:
 	
 # EXIT Function: used to terminate.
 Exit:
