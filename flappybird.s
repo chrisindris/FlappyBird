@@ -45,6 +45,9 @@
 #
 .data
 	displayAddress:	.word	0x10008000
+	pipeArray: .space 4
+	#pipeArray: .word  1, 2, 3	# pipeArray = [1, 2, 3]	(python)
+	#pipeArray: .space 4		# Array pipeArray[1] (Java)
 	#Sky: #33ccff (blue)
 	#Bird: #771b80 (purple)
 	#Pipe: #ff9933 (orange)
@@ -64,14 +67,21 @@ SQUARES:
 	
 	addi $s3, $0, 0 # 0
 	addi $s4, $0, 3712 # 3840
-	
-	j trash
-	PAUSE:
 		
 STARTSQUARE:
 
-	j birdpaint
-	RESUME:
+	j trash
+	PAUSE:
+	
+	lw $s7, 0xffff0000($0)  # Load $s7 with value found in memory location 0xffff0000 = 0xffff0000 + 0. 
+	beq $s7, $0, birdDown	# if $s7 is 0, no button was pressed at all and we go down.
+	lw $s7, 0xffff0004($0)	# Load $s7 with value found in memory location 0xffff0004 = 0xffff0004 + 0
+	subi $s7, $s7, 102	# If $s7 = 102 (the ascii code for 'f'), then $s7 -= 102 = 0.
+	bne $s7, $0, birdDown	# If $s7 - 102 != 0, then $s7 != 102 (some non-'f' key is pressed). No flap up here!
+	j keyboardbirdUP	
+	birdDown:
+	j birdpaintDOWN
+	FlapDone:
 	
 	beq $s1, $s2, Exit
 	#pipe
@@ -129,9 +139,36 @@ initialize:
 	sw $t1, 1164($t0)
 	li $t8, 1160 
 	
-	j SQUARES
-	
+	j SQUARES	
 ENDinitialize:
+
+# bird up
+keyboardbirdUP:	
+	# colour current locations blue
+	# $t8 += 128 
+	# colour new locations purple
+	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
+	
+	sw $t3, -128($t0)
+	sw $t3, 0($t0)
+	sw $t3, 4($t0)
+	sw $t3, 128($t0)
+	
+	sub $t0, $t0, $t8	# restore $t0
+	
+	addi $t8, $t8, -128
+	
+	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
+	
+	sw $t1, -128($t0)
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 128($t0)
+	
+	sub $t0, $t0, $t8	# restore $t0
+	j FlapDone
+	#sw $t3, 0($s1)	
+ENDkeyboardbirdUP:
 
 # TRASH Function: This function will check 
 # May use: $t9 (because $t9 is the last storing function)
@@ -158,7 +195,7 @@ trash:
 ENDtrash:
 
 # BIRDPAINT Function:
-birdpaint:
+birdpaintDOWN:
 	# colour current locations blue
 	# $t8 += 128 
 	# colour new locations purple
@@ -181,9 +218,21 @@ birdpaint:
 	sw $t1, 128($t0)
 	
 	sub $t0, $t0, $t8	# restore $t0
-	j RESUME
+	j FlapDone
 	#sw $t3, 0($s1)
-ENDbirdpaint:
+ENDbirdpaintDOWN:
+
+# TODO: Paint a new pipe on the rightmost column of the screen (for now, we will make pipes one unit wide)
+# Add "128" to the array (starting location; the conveyer belt will make this smaller as the pipes move)
+pipeCreator:
+	
+ENDpipeCreator:
+
+# TODO: Conveyer Belt function (move the pipes from right to left)
+# Algorithm:
+conveyerBelt:
+
+ENDconveyerBelt:
 	
 # EXIT Function: used to terminate.
 Exit:
