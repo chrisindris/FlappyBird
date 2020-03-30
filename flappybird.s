@@ -14,7 +14,7 @@
 # - Display height in pixels: 256
 # - Base Address for Display: 0x10008000 ($gp)
 #
-# Which milestone is reached in this submission?
+# Which milestone is reached in this submission? 
 # (See the assignment handout for descriptions of the milestones)
 # - Milestone 1/2/3/4/5 (choose the one the applies)
 #
@@ -45,7 +45,11 @@
 #
 .data
 	displayAddress:	.word	0x10008000
-	pipeArray: .space 4
+	pipeLocationArray: .space 8		# 2 pipes on screen
+	pipeGapSizeThinknessArray: .space 32	# 8 pipes to choose from
+	
+	function1array: .space 32
+	function2array: .space 32
 	#pipeArray: .word  1, 2, 3	# pipeArray = [1, 2, 3]	(python)
 	#pipeArray: .space 4		# Array pipeArray[1] (Java)
 	#Sky: #33ccff (blue)
@@ -89,6 +93,17 @@ STARTSQUARE:
 	addi $s3, $zero, 0
 	addi $s6, $zero, 0
 ORG:
+	#go through function2array that has 8 pipes in it and randomly print them to the screen for one 
+	#iteration making sure that all the 8 pipes come on the screen in one iteration
+	# for the second iteration have the 8 pipes randomly print to the screen but in a different random ordering then iteration 1,
+	# again all 8 pipes get printed to the screen
+	#depending on how many iterations we want for level 1 of the 8 pipes the above process continues
+	#to be done in the form of a form loop because we will have a set number of iterations
+	
+	
+	
+	
+	
 	beq $s3, $s4, ENDORG
 	add $s6, $s1, $s3
 	# sw $t4, -4($s6)
@@ -225,15 +240,127 @@ ENDbirdpaintDOWN:
 # TODO: Paint a new pipe on the rightmost column of the screen (for now, we will make pipes one unit wide)
 # Add "128" to the array (starting location; the conveyer belt will make this smaller as the pipes move)
 pipeCreator:
+# Function1 (default pipe thickness, min gap size, max gap size) (Each of the 3 levels sets these values)
+	li $v1, 32
 	
+	pcloop:
+	subi $v1, $v1, 4
+	subi $t7, $t7, 1	# precondition: $t7 = maxGap was defined in Initialize function to at least 6		
+	subi $t6, $t6, 1	# precondition: $t6 = minGap was defined in Intialize function to at least 6
+	
+	# syscall
+	# We want a number in this range: [minGap, maxGap] (inclusive)
+	# However, random number generation gives us a result in range [0, $a1).
+	# At the beginning, $t6 = minGap and $t7 = maxGap
+	# We can say that [minGap, maxGap] is the same as [minGap - minGap, maxGap - minGap] + minGap = [0, max - min] + min
+	# = [0, max - min + 1) + min 
+	# so we want $a1 = max - min + 1
+	# our random in range [0, max - min + 1) is stored in $a0
+	# We do $t7 += $t6 to cancel out the original subtraction
+	# add $t9, $a0, $t6
+	li $v0, 42		# trapcode for random integer in range 0 <= output < $a1
+	sub $t7, $t7, $t6	
+	move $a1, $t7
+	addi $a1, $a1, 1
+	syscall
+	add $t7, $t7, $t6
+	add $t9, $a0, $t6
+	
+	li $v0, 42
+	li $a1, 29		# accounts for the +1 (exclusion)
+	sub $a1, $a1, $t9	# $a1 = 29 - gap
+	syscall
+	addi $a0, $a0, 1	# the answer + 1 = $a0 + 1 gives us the range we want
+	
+	# now, we store our pipe
+	# thickness = 1
+	li $s5, 1 # $s5 = 1
+	sll $s5, $s5, 16	# $s5 = 00000000 00000001 00000000 00000000 
+	
+	sll $t9, $t9, 8
+	add $s5, $s5, $t9	# $s5 = 00000000 00000001 [  $t9  ] 00000000 
+	
+	add $s5, $s5, $a0	# $s5 = 00000000 00000001 [  $t9  ] [  $a0  ] 
+	
+	sw $s5, function1array($v1)
+	
+	bne $v1, $0, pcloop
+	pcloop_end:
+	
+	
+	#Fucntion2 (pick a number from 1-8, thinkness from 1-4)
+	li $v1, 32
+	thinkness:
+	subi $v1, $v1, 4
+	
+	li $v0, 42
+	li $a1, 4
+	syscall			# gives you randint in [0, 3] = [0, 4)
+	move $t9, $a0		# gives you randint in [0, 3] 
+	
+	li $v0, 42
+	li $a1, 8
+	syscall			# gives you randint in [0, 8) = [0, 7]
+	
+	# now, we store our pipe
+	# thickness = $t9
+	# $a0 gives us which pipe in the first array we want to take from
+	
+	sll $t9, $t9, 16		
+	
+	add $a0, $a0, $a0
+	add $a0, $a0, $a0 		# now, we have 4 * $a0
+	
+	lw $s5, function1array($a0)	#   $s5 = [0][1][gap][start]
+	add $s5, $s5, $t9		# + $t9 = [0][thickness - 1][0][0]
+	sw $s5, function2array($v1)     #       = [0][thickness][gap][start]
+	
+	
+	
+	#for(i = 8, i != 0, i--){ # loop 8 times
+		#gap = randomNumInRange(minGap, maxGap)
+		#startOfHole = randomNumInRange(1, 29 - gap)
+		#pipeList[i - 1] = new Pipe(thickness = 1, gap, startOfHole) # store in the array
+	#}
+	#return Fucntion1Array
+#Fucntion2 (pick a number from 1-8, thinkness from 1-4)
+	#for(i = 8, i != 0, i--){
+		#thickness = randomNumInRange(1, 4)
+		#baseArray = randomNumInRange(1, 8)
+		#function2array[i-1] = new Pipe(THICKNESS = thickness, baseArray = function1Array[baseArray - 1])
+	#}
+# Final pipe array  ( thick pipes from fucntion2, orginal pipes from function1)
+#pick randomly from Final pipe array and put on screen
+	#choice = randomNumInRange(0, 7) # 8 choices
+	#paint function2array[choice] on screen by painting the appropriate base array "thickness" times.
+	
+	#00000000 00000000 00000000 00000000  	5-bit binary: biggest number is 11111 = 31. 
+	#00000000 TTTTTTTT GGGGGGGG SSSSSSSS
+	
+
 ENDpipeCreator:
+
+FinalPipePainter:
+	
+
+End_FinalPipePainter:
 
 # TODO: Conveyer Belt function (move the pipes from right to left)
 # Algorithm:
 conveyerBelt:
+	
 
 ENDconveyerBelt:
-	
+
+# TODO: Level Creator Function
+# Generate 8 pipes (hole starting position, hole width), and set a pipe width for the level.
+#
+
+
+
+level:
+
+ENDlevel:	
 # EXIT Function: used to terminate.
 Exit:
 	li $v0, 10 # terminate the program gracefully
