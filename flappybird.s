@@ -50,6 +50,8 @@
 	
 	function1array: .space 32
 	function2array: .space 32
+	
+	current: .space 4
 	#pipeArray: .word  1, 2, 3	# pipeArray = [1, 2, 3]	(python)
 	#pipeArray: .space 4		# Array pipeArray[1] (Java)
 	#Sky: #33ccff (blue)
@@ -60,8 +62,9 @@
 
 main: # main method
 
-	j initialize # jump to initialize
+	jal initialize # jump to initialize
 	
+	jal pipeCreator
 SQUARES:
 	li $v0, 32 # for now, we only want sleep (syscall, $v0 = 32)
 	li $a0, 1000 # $a0 = 1000- sysall will sleep for 1000 milliseconds = 1 sec each time.
@@ -71,10 +74,22 @@ SQUARES:
 	
 	addi $s3, $0, 0 # 0
 	addi $s4, $0, 3712 # 3840
+	
+	li $v0, 42
+	li $a1, 8
+	syscall
+	sll $a0, $a0, 2
+	lw $s5, function2array($a0)
+	andi $t9, $s5, 255              	 # start
+	andi $s5, $s5, 65280       
+	sra $s5, $s5, 8				# gap
+	add $s5, $s5, $t9 			# end
+	sll $t9, $t9, 7	# multiplies by 128, to match with the $s3 value
+	sll $s5, $s5, 7
 		
 STARTSQUARE:
 
-	j trash
+	#j trash
 	PAUSE:
 	
 	lw $s7, 0xffff0000($0)  # Load $s7 with value found in memory location 0xffff0000 = 0xffff0000 + 0. 
@@ -100,21 +115,26 @@ ORG:
 	#depending on how many iterations we want for level 1 of the 8 pipes the above process continues
 	#to be done in the form of a form loop because we will have a set number of iterations
 	
-	
-	
-	
-	
 	beq $s3, $s4, ENDORG
 	add $s6, $s1, $s3
-	# sw $t4, -4($s6)
-	beq $s1, $s2, skip
-	sw $t4, 0($s6) # 0 + $s6 = 0 + $s3 + $s1
-	skip:
-	sw $t3, 4($s6) # 4 + $s6
+	
+	# build a single square given a colour.
+	blt $s3, $t9, orang
+	bgt $s3, $s5, orang
+		sw $t3, 0($s6)
+		sw $t3, 4($s6)
+		j odone
+	orang:
+		sw $t4, 0($s6)
+		sw $t3, 4($s6)
+	odone:
+	
+	li $s4, 3712
 	addi $s3, $s3, 128
 	j ORG
 ENDORG:
-	
+	li $v0, 32
+	li $a0, 100
 	syscall # after the pipe is painted, we pause for 1 second.
 	j STARTSQUARE
 ENDSQUARE:
@@ -125,6 +145,9 @@ initialize:
 	li $t2, 0x339933	# $t2 stores the green colour code (grass)
 	li $t3, 0x33ccff	# $t3 stores the blue colour code (sky)
 	li $t4, 0xff9933	# $t4 stores the orange colour code (pipe)
+	
+	li $t6, 6
+	li $t7, 7
 	
   		# Board Setup: Paint Sky and Grass
 	add $s1, $t0, $zero
@@ -154,7 +177,7 @@ initialize:
 	sw $t1, 1164($t0)
 	li $t8, 1160 
 	
-	j SQUARES	
+	jr $ra	
 ENDinitialize:
 
 # bird up
@@ -243,10 +266,11 @@ pipeCreator:
 # Function1 (default pipe thickness, min gap size, max gap size) (Each of the 3 levels sets these values)
 	li $v1, 32
 	
-	pcloop:
-	subi $v1, $v1, 4
 	subi $t7, $t7, 1	# precondition: $t7 = maxGap was defined in Initialize function to at least 6		
 	subi $t6, $t6, 1	# precondition: $t6 = minGap was defined in Intialize function to at least 6
+	
+	pcloop:
+	subi $v1, $v1, 4
 	
 	# syscall
 	# We want a number in this range: [minGap, maxGap] (inclusive)
@@ -290,7 +314,8 @@ pipeCreator:
 	
 	#Fucntion2 (pick a number from 1-8, thinkness from 1-4)
 	li $v1, 32
-	thinkness:
+	
+	thickness_loop:
 	subi $v1, $v1, 4
 	
 	li $v0, 42
@@ -315,6 +340,8 @@ pipeCreator:
 	add $s5, $s5, $t9		# + $t9 = [0][thickness - 1][0][0]
 	sw $s5, function2array($v1)     #       = [0][thickness][gap][start]
 	
+	bne $v1, $0, thickness_loop
+	thickness_loop_end:
 	
 	
 	#for(i = 8, i != 0, i--){ # loop 8 times
@@ -337,7 +364,7 @@ pipeCreator:
 	#00000000 00000000 00000000 00000000  	5-bit binary: biggest number is 11111 = 31. 
 	#00000000 TTTTTTTT GGGGGGGG SSSSSSSS
 	
-
+	jr $ra
 ENDpipeCreator:
 
 FinalPipePainter:
