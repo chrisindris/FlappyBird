@@ -51,7 +51,7 @@
 	function1array: .space 32
 	function2array: .space 32
 	
-	current: .space 4
+	current: .space 8
 	#pipeArray: .word  1, 2, 3	# pipeArray = [1, 2, 3]	(python)
 	#pipeArray: .space 4		# Array pipeArray[1] (Java)
 	#Sky: #33ccff (blue)
@@ -70,10 +70,12 @@ SQUARES:
 	li $a0, 1000 # $a0 = 1000- sysall will sleep for 1000 milliseconds = 1 sec each time.
 	
 	addi $s1, $t0, 124
-	addi $s2, $t0, -4
+	addi $s2, $t0, 0
 	
 	addi $s3, $0, 0 # 0
 	addi $s4, $0, 3712 # 3840
+	
+	
 	
 	li $v0, 42
 	li $a1, 8
@@ -84,9 +86,9 @@ SQUARES:
 	andi $s5, $s5, 65280       
 	sra $s5, $s5, 8				# gap
 	add $s5, $s5, $t9 			# end
-	sll $t9, $t9, 7	# multiplies by 128, to match with the $s3 value
+	sll $t9, $t9, 7				# multiplies by 128, to match with the $s3 value
 	sll $s5, $s5, 7
-		
+			
 STARTSQUARE:
 
 	#j trash
@@ -102,7 +104,28 @@ STARTSQUARE:
 	j birdpaintDOWN
 	FlapDone:
 	
-	beq $s1, $s2, Exit
+	# new loop cycle
+	bne $s1, $s2, continue
+	addi $s1, $t0, 124 
+	
+	li $v0, 42
+	li $a1, 8
+	syscall
+	sll $a0, $a0, 2
+	lw $s5, function2array($a0)
+	sw $s5, current+0			# current[0] = $s5
+	
+	li $v0, 42
+	li $a1, 8
+	syscall
+	sll $a0, $a0, 2
+	lw $s5, function2array($a0)
+	sw $s5, current+4			# current[1] = $s5
+	
+	continue:
+	
+	
+	
 	#pipe
 	addi $s1, $s1, -4
 	addi $s3, $zero, 0
@@ -118,23 +141,49 @@ ORG:
 	beq $s3, $s4, ENDORG
 	add $s6, $s1, $s3
 	
+	lw $s5, current+0
+	andi $t9, $s5, 255              	 # start
+	andi $s5, $s5, 65280       
+	sra $s5, $s5, 8				# gap
+	add $s5, $s5, $t9 			# end
+	sll $t9, $t9, 7				# multiplies by 128, to match with the $s3 value
+	sll $s5, $s5, 7
+	
 	# build a single square given a colour.
-	blt $s3, $t9, orang
-	bgt $s3, $s5, orang
+	blt $s3, $t9, orang1
+	bgt $s3, $s5, orang1
 		sw $t3, 0($s6)
 		sw $t3, 4($s6)
-		j odone
-	orang:
+		j odone1
+	orang1:
 		sw $t4, 0($s6)
 		sw $t3, 4($s6)
-	odone:
+	odone1:
+	
+	lw $s5, current+0
+	andi $t9, $s5, 255              	 # start
+	andi $s5, $s5, 65280       
+	sra $s5, $s5, 8				# gap
+	add $s5, $s5, $t9 			# end
+	sll $t9, $t9, 7				# multiplies by 128, to match with the $s3 value
+	sll $s5, $s5, 7
+	
+	blt $s3, $t9, orang2
+	bgt $s3, $s5, orang2
+		sw $t3, -32($s6)
+		sw $t3, -28($s6)
+		j odone2
+	orang2:
+		sw $t4, -32($s6)
+		sw $t3, -28($s6)
+	odone2:
 	
 	li $s4, 3712
 	addi $s3, $s3, 128
 	j ORG
 ENDORG:
 	li $v0, 32
-	li $a0, 100
+	li $a0, 300
 	syscall # after the pipe is painted, we pause for 1 second.
 	j STARTSQUARE
 ENDSQUARE:
