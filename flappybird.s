@@ -88,42 +88,66 @@ SQUARES:
 	add $s5, $s5, $t9 			# end
 	sll $t9, $t9, 7				# multiplies by 128, to match with the $s3 value
 	sll $s5, $s5, 7
+	
+	li $v0, 42
+	li $a1, 8
+	syscall
+	sll $a0, $a0, 2
+	lw $a2, function2array($a0)
+	andi $a3, $a2, 255              	 # start
+	andi $a2, $a2, 65280       
+	sra $a2, $a2, 8				# gap
+	add $a2, $a2, $a3			# end
+	sll $a3, $a3, 7				# multiplies by 128, to match with the $s3 value
+	sll $a2, $a2, 7
+
 			
 STARTSQUARE:
 
-	#j trash
-	PAUSE:
+	jal trash
 	
 	lw $s7, 0xffff0000($0)  # Load $s7 with value found in memory location 0xffff0000 = 0xffff0000 + 0. 
 	beq $s7, $0, birdDown	# if $s7 is 0, no button was pressed at all and we go down.
 	lw $s7, 0xffff0004($0)	# Load $s7 with value found in memory location 0xffff0004 = 0xffff0004 + 0
 	subi $s7, $s7, 102	# If $s7 = 102 (the ascii code for 'f'), then $s7 -= 102 = 0.
 	bne $s7, $0, birdDown	# If $s7 - 102 != 0, then $s7 != 102 (some non-'f' key is pressed). No flap up here!
-	j keyboardbirdUP	
+	jal keyboardbirdUP	
 	birdDown:
-	j birdpaintDOWN
+	jal birdpaintDOWN
 	FlapDone:
 	
 	# new loop cycle
 	bne $s1, $s2, continue
-	addi $s1, $t0, 124 
+	addi $s1, $t0, 124
+	
+	# day/night
+	jal sky
 	
 	li $v0, 42
 	li $a1, 8
 	syscall
 	sll $a0, $a0, 2
 	lw $s5, function2array($a0)
-	sw $s5, current+0			# current[0] = $s5
+	andi $t9, $s5, 255              	 # start
+	andi $s5, $s5, 65280       
+	sra $s5, $s5, 8				# gap
+	add $s5, $s5, $t9 			# end
+	sll $t9, $t9, 7				# multiplies by 128, to match with the $s3 value
+	sll $s5, $s5, 7
 	
 	li $v0, 42
 	li $a1, 8
 	syscall
 	sll $a0, $a0, 2
-	lw $s5, function2array($a0)
-	sw $s5, current+4			# current[1] = $s5
+	lw $a2, function2array($a0)
+	andi $a3, $a2, 255              	 # start
+	andi $a2, $a2, 65280       
+	sra $a2, $a2, 8				# gap
+	add $a2, $a2, $a3			# end
+	sll $a3, $a3, 7				# multiplies by 128, to match with the $s3 value
+	sll $a2, $a2, 7
 	
-	continue:
-	
+	continue: 
 	
 	
 	#pipe
@@ -141,14 +165,6 @@ ORG:
 	beq $s3, $s4, ENDORG
 	add $s6, $s1, $s3
 	
-	lw $s5, current+0
-	andi $t9, $s5, 255              	 # start
-	andi $s5, $s5, 65280       
-	sra $s5, $s5, 8				# gap
-	add $s5, $s5, $t9 			# end
-	sll $t9, $t9, 7				# multiplies by 128, to match with the $s3 value
-	sll $s5, $s5, 7
-	
 	# build a single square given a colour.
 	blt $s3, $t9, orang1
 	bgt $s3, $s5, orang1
@@ -160,22 +176,22 @@ ORG:
 		sw $t3, 4($s6)
 	odone1:
 	
-	lw $s5, current+0
-	andi $t9, $s5, 255              	 # start
-	andi $s5, $s5, 65280       
-	sra $s5, $s5, 8				# gap
-	add $s5, $s5, $t9 			# end
-	sll $t9, $t9, 7				# multiplies by 128, to match with the $s3 value
-	sll $s5, $s5, 7
-	
-	blt $s3, $t9, orang2
-	bgt $s3, $s5, orang2
-		sw $t3, -32($s6)
-		sw $t3, -28($s6)
+	blt $s3, $a3, orang2
+	bgt $s3, $a2, orang2
+		subi $s1, $s1, 16
+		ble $s1, $t0, past1
+		sw $t3, -20($s6)
+		sw $t3, -16($s6)
+		past1:
+		addi $s1, $s1, 16
 		j odone2
 	orang2:
-		sw $t4, -32($s6)
-		sw $t3, -28($s6)
+		subi $s1, $s1, 16
+		ble $s1, $t0, past2
+		sw $t4, -20($s6)
+		sw $t3, -16($s6)
+		past2:
+		addi $s1, $s1, 16
 	odone2:
 	
 	li $s4, 3712
@@ -236,6 +252,23 @@ keyboardbirdUP:
 	# colour new locations purple
 	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
 	
+	# check for grass collision
+	lw $v0, 256($t0)
+	beq $v0, $t2, death
+	# check for pipe collision in front
+	lw $v0, 8($t0)
+	beq $v0, $t4, death
+	# check for pipe collision above
+	lw $v0, -256($t0)
+	beq $v0, $t4, death
+	lw $v0, -124($t0)
+	beq $v0, $t4, death
+	# check for pipe collision below
+	lw $v0, 256($t0)
+	beq $v0, $t4, death
+	lw $v0, 132($t0)
+	beq $v0, $t4, death
+		
 	sw $t3, -128($t0)
 	sw $t3, 0($t0)
 	sw $t3, 4($t0)
@@ -247,39 +280,87 @@ keyboardbirdUP:
 	
 	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
 	
+	
 	sw $t1, -128($t0)
 	sw $t1, 0($t0)
 	sw $t1, 4($t0)
 	sw $t1, 128($t0)
 	
 	sub $t0, $t0, $t8	# restore $t0
-	j FlapDone
+	
 	#sw $t3, 0($s1)	
-ENDkeyboardbirdUP:
+ENDkeyboardbirdUP: jr $ra
+
+# DEATH Function: This function can be called when the bird crashes into something.
+# Repaint the entire screen black, sad face, syscall to exit ($v0 = 10), do not return to game loop.
+death:
+	
+	sub $t0, $t0, $t8	# back to the proper start
+	
+	addi $t9, $t0, 4096	# $t9 = $t0 + 4096
+	deathscreenloop: 
+		addi $t9, $t9, -4
+		sw $0, 0($t9)
+		bne $t9, $t0, deathscreenloop
+	deathscreenloopdone:
+	
+	# goodbye
+	li $v0, 10
+	syscall
+	
+ENDdeath:
 
 # TRASH Function: This function will check 
 # May use: $t9 (because $t9 is the last storing function)
 trash:
-	lw $t9, 0($t0) 					# $t9 stores the colour at the upper left hand corner of the screen.
+	addi $v0, $t0, 3712
+	tloop:
+	subi $v0, $v0, 128
+	sw $t3, 0($v0)
+	bne $v0, $t0, tloop 
+ENDtrash: jr $ra
+
+# SKY function: change the sky colour, and paint everything.
+sky:
+	# cycle from day, to dusk, to black, to morning
+	li $v0, 0x33ccff	# branch if it's day
+	beq $t3, $v0, day
 	
-	trash_IF: 					# check if upper left hand corner is sky blue.
-		beq $t9, $t3, trash_DONE			# if the upper left corner is sky-blue, no pipe (no work needed)
-		
-	trash_ELSE: 					# else, the upper left hand corner is not blue (a pipe is here)
-		addi $s3, $0, 0 			# 0 - this will count up to 3840, 128 at a time.
-		addi $s4, $0, 3712			# 3712
-		
-		trash_WHILE:				# While loop: change all sqares here to blue (erase the pipe)
-			beq $s3, $s4, trash_DONE	# if $s3 has reached $s4, work is done.
-			add $t9, $t0, $s3		# otherwise, $t9 = $0 + $s3 (this is $s3($t0), the memory location.
-			sw $t3, 0($t9)			# we make this square blue. (we progress down the column like this)
-			addi $s3, $s3, 128		# $s3 += 128, to find the next pipe below.
-			j trash_WHILE			# jump up again (we may continue the loop; so, we check at the top.)
-							
-	trash_DONE:
-		addi $s3, $0, 0				# set $s3 back to 0.
-		j PAUSE				# exit function, return to next task.
-ENDtrash:
+	li $v0, 0x276276	# branch if it's dusk
+	beq $t3, $v0, dusk
+	
+	beq $t3, $zero, night	# branch if it's night
+	
+	li $v0, 0x276275	# branch if it's morning
+	beq $t3, $v0, morn
+	
+	day:
+		li $t3, 0x276276	# day -> dusk
+		j skydone
+	dusk:
+		move $t3, $zero		# dusk -> night
+		j skydone
+	night:
+		li $t3, 0x276275	# night -> morn
+		j skydone
+	morn:			
+		li $t3, 0x33ccff	# morn -> day
+		j skydone	
+	skydone:
+	
+	addi $v0, $t0, 3712
+	skyloop: 
+		addi $v0, $v0, -4
+		lw $v1, 0($v0)
+		beq $v1, $t1, nonsky
+		beq $v1, $t2, nonsky
+		beq $v1, $t4, nonsky
+		sw $t3, 0($v0)
+		nonsky:
+		bne $v0, $t0, skyloop
+	skyloopdone:
+
+ENDsky: jr $ra
 
 # BIRDPAINT Function:
 birdpaintDOWN:
@@ -287,6 +368,23 @@ birdpaintDOWN:
 	# $t8 += 128 
 	# colour new locations purple
 	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
+	
+	# check for grass collision
+	lw $v0, 256($t0)
+	beq $v0, $t2, death
+	# check for pipe collision in front
+	lw $v0, 8($t0)
+	beq $v0, $t4, death
+	# check for pipe collision above
+	lw $v0, -256($t0)
+	beq $v0, $t4, death
+	lw $v0, -124($t0)
+	beq $v0, $t4, death
+	# check for pipe collision below
+	lw $v0, 256($t0)
+	beq $v0, $t4, death
+	lw $v0, 132($t0)
+	beq $v0, $t4, death
 	
 	sw $t3, -128($t0)
 	sw $t3, 0($t0)
@@ -299,15 +397,42 @@ birdpaintDOWN:
 	
 	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
 	
+	
 	sw $t1, -128($t0)
 	sw $t1, 0($t0)
 	sw $t1, 4($t0)
 	sw $t1, 128($t0)
 	
 	sub $t0, $t0, $t8	# restore $t0
-	j FlapDone
+	
 	#sw $t3, 0($s1)
-ENDbirdpaintDOWN:
+ENDbirdpaintDOWN: jr $ra
+
+# check around the bird for collisions.
+birddeathcheck:
+
+	# check for grass collision
+	lw $v0, 256($t0)
+	beq $v0, $t2, death
+	
+	# check for pipe collision in front
+	lw $v0, 8($t0)
+	beq $v0, $t4, death
+	# check for pipe collision above
+	lw $v0, -256($t0)
+	beq $v0, $t4, death
+	
+	lw $v0, -124($t0)
+	beq $v0, $t4, death
+	
+	# check for pipe collision below
+	lw $v0, 256($t0)
+	beq $v0, $t4, death
+	
+	lw $v0, 132($t0)
+	beq $v0, $t4, death
+	
+ENDbirddeathcheck:
 
 # TODO: Paint a new pipe on the rightmost column of the screen (for now, we will make pipes one unit wide)
 # Add "128" to the array (starting location; the conveyer belt will make this smaller as the pipes move)
