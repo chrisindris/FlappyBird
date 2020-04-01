@@ -178,20 +178,20 @@ ORG:
 	
 	blt $s3, $a3, orang2
 	bgt $s3, $a2, orang2
-		subi $s1, $s1, 16
+		subi $s1, $s1, 36
 		ble $s1, $t0, past1
-		sw $t3, -20($s6)
-		sw $t3, -16($s6)
+		sw $t3, -40($s6)
+		sw $t3, -36($s6)
 		past1:
-		addi $s1, $s1, 16
+		addi $s1, $s1, 36
 		j odone2
 	orang2:
-		subi $s1, $s1, 16
+		subi $s1, $s1, 36
 		ble $s1, $t0, past2
-		sw $t4, -20($s6)
-		sw $t3, -16($s6)
+		sw $t4, -40($s6)
+		sw $t3, -36($s6)
 		past2:
-		addi $s1, $s1, 16
+		addi $s1, $s1, 36
 	odone2:
 	
 	li $s4, 3712
@@ -276,7 +276,7 @@ keyboardbirdUP:
 	
 	sub $t0, $t0, $t8	# restore $t0
 	
-	addi $t8, $t8, -128
+	addi $t8, $t8, -256
 	
 	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
 	
@@ -303,6 +303,98 @@ death:
 		sw $0, 0($t9)
 		bne $t9, $t0, deathscreenloop
 	deathscreenloopdone:
+	
+	# head
+	li $t1, 0x9c1006
+	
+	addi $s1, $t0, 352
+	addi $s0, $t0, 288
+	dloop1:
+		addi $s1, $s1, -4
+		sw $t1, 0($s1)
+		sw $t1, 1920($s1)
+		bne $s1, $s0, dloop1
+		
+	addi $s1, $t0, 2208
+	addi $s0, $t0, 288
+	dloop2:
+		addi $s1, $s1, -128
+		sw $t1, 0($s1)
+		sw $t1, 60($s1)
+		bne $s1, $s0, dloop2
+		
+	# face
+	addi $s1, $t0, 816
+	sw $t1, 0($s1)
+	sw $t1, -128($s1)
+	sw $t1, 128($s1)
+	sw $t1, -4($s1)
+	sw $t1, 4($s1)
+	
+	addi $s1, $t0, 844
+	sw $t1, 0($s1)
+	sw $t1, -128($s1)
+	sw $t1, 128($s1)
+	sw $t1, -4($s1)
+	sw $t1, 4($s1)
+	
+	sw $t1, 1468($t0)
+	sw $t1, 1472($t0)
+	
+	sw $t1, 1588($t0)
+	sw $t1, 1592($t0)
+	sw $t1, 1596($t0)
+	sw $t1, 1600($t0)
+	sw $t1, 1604($t0)
+	sw $t1, 1608($t0)
+	
+	sw $t1, 1712($t0)
+	sw $t1, 1716($t0)
+	sw $t1, 1836($t0)
+	sw $t1, 1840($t0)
+	
+	sw $t1, 1736($t0)
+	sw $t1, 1740($t0)
+	sw $t1, 1868($t0)
+	sw $t1, 1872($t0)
+	
+	
+	# ded
+	addi $s1, $t0, 2988
+	sw $t1, -132($s1)
+	sw $t1, -128($s1)
+	sw $t1, -124($s1)
+	sw $t1, -4($s1)
+	sw $t1, 4($s1)
+	sw $t1, 124($s1)
+	sw $t1, 128($s1)
+	sw $t1, 132($s1)
+	sw $t1, -252($s1)
+	sw $t1, -380($s1)
+	
+	addi $s1, $t0, 3020
+	sw $t1, -132($s1)
+	sw $t1, -128($s1)
+	sw $t1, -124($s1)
+	sw $t1, -4($s1)
+	sw $t1, 4($s1)
+	sw $t1, 124($s1)
+	sw $t1, 128($s1)
+	sw $t1, 132($s1)
+	sw $t1, -252($s1)
+	sw $t1, -380($s1)
+	
+	sw $t1, 2616($t0)
+	sw $t1, 2620($t0)
+	sw $t1, 2624($t0)
+	sw $t1, 2744($t0)
+	sw $t1, 2872($t0)
+	sw $t1, 2876($t0)
+	sw $t1, 2880($t0)
+	sw $t1, 3000($t0)
+	sw $t1, 3128($t0)
+	sw $t1, 3132($t0)
+	sw $t1, 3136($t0)
 	
 	# goodbye
 	li $v0, 10
