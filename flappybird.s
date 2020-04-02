@@ -16,17 +16,35 @@
 #
 # Which milestone is reached in this submission? 
 # (See the assignment handout for descriptions of the milestones)
-# - Milestone 1/2/3/4/5 (choose the one the applies)
+# - Milestone 5 
+# - "at least three of the approved additional features (listed below) are properly implemented."
+#
 #
 # Which approved additional features have been implemented?
 # (See the assignment handout for the list of additional features)
-# 1. (fill in the feature, if any)
-# 2. (fill in the feature, if any)
-# 3. (fill in the feature, if any)
-# ... (add more if necessary)
+#
+# 1. More than one obstacles on the screen. (Option # 3)
+#    In the video demo above, only one obstacle is displayed on the screen at a time.
+#    Upgrade it by supporting displaying multiple obstacles at a time on the screen. 
+#    The positions of the obstacles should be properly randomized, of course.
+#
+# 2. Levels. (Option # 5)
+#   The games progresses through a sequence of levels. 
+#   There is a screen that indicates the player has reached a new level. 
+#   Each level should be different from the previous level, e.g., increased difficulty, 
+#   different colours/shapes of objects, etc.
+#
+# 3. Changing the game difficulty. (Option # 4)
+#    As the game progresses further, gradually increase the moving speed 
+#    of the obstacles to make the game more challenging.
+#
+# 4. Background color fading from day to night back to day as game progress. (Option # 12)
+#
 #
 # Any additional information that the TA needs to know:
-# - (write here, if any)
+# - We have a winner screen and a death screen
+# - We have a total of three levels ( LVL I, LVL II, LVL III)
+# - When the player moves from one level to the next the speed of the game increases as the bird and the pipe moves faster.
 #
 
 
@@ -64,7 +82,11 @@ main: # main method
 
 	jal initialize # jump to initialize
 	
+	jal lvl_1_grass
+	
+	# here, we start level one.
 	jal pipeCreator
+	
 SQUARES:
 	li $v0, 32 # for now, we only want sleep (syscall, $v0 = 32)
 	li $a0, 1000 # $a0 = 1000- sysall will sleep for 1000 milliseconds = 1 sec each time.
@@ -136,15 +158,17 @@ STARTSQUARE:
 	
 	addi $t1, $t1, 1
 	
-	li $s1, 4
+	beq $t1, 4, l_two
+	beq $t1, 8, l_three
+	beq $t1, 12, win	# jump straight to the win function
+	j l_done
 	l_two:
-	bne $t1, $s1, l_three
 		jal pipeCreator
+		jal lvl_2_grass
 		j l_done
 	l_three:
-	li $s1, 8
-	bne $t1, $s1, l_done
 		jal pipeCreator
+		jal lvl_3_grass
 		j l_done
 	l_done:
 	
@@ -200,8 +224,8 @@ ORG:
 	# build a single square given a colour.
 	blt $s3, $t9, orang1
 	bgt $s3, $s5, orang1
-		sw $t3, 0($s6)	# $s6 + 0 = $s6
-		sw $t3, 4($s6)
+		# sw $t3, 0($s6)	# $s6 + 0 = $s6
+		# sw $t3, 4($s6)
 		j odone1
 	orang1:
 		sw $t4, 0($s6)
@@ -212,8 +236,8 @@ ORG:
 	bgt $s3, $a2, orang2
 		subi $s1, $s1, 36
 		ble $s1, $t0, past1
-		sw $t3, -40($s6)
-		sw $t3, -36($s6)
+		# sw $t3, -40($s6)
+		# sw $t3, -36($s6)
 		past1:
 		addi $s1, $s1, 36
 		j odone2
@@ -240,7 +264,7 @@ ENDORG:
 		li $a0, 150	# pause for 0.15 seconds
 		j pdone
 	p3:
-		li $a0, 50	# pause for 0.05 seconds
+		li $a0, 100	# pause for 0.05 seconds
 		j pdone
 	pdone:
 	syscall 
@@ -254,8 +278,8 @@ initialize:
 	li $t3, 0x33ccff	# $t3 stores the blue colour code (sky)
 	li $t4, 0xff9933	# $t4 stores the orange colour code (pipe)
 	
-	li $t6, 6
-	li $t7, 7
+	li $t6, 10
+	li $t7, 11
 	
   		# Board Setup: Paint Sky and Grass
 	add $s1, $t0, $zero
@@ -284,9 +308,8 @@ initialize:
 	sw $t1, 1288($t0)
 	sw $t1, 1164($t0)
 	li $t8, 1160 
-	
-	jr $ra	
-ENDinitialize:
+		
+ENDinitialize: jr $ra
 
 # bird up
 keyboardbirdUP:	
@@ -334,6 +357,135 @@ keyboardbirdUP:
 	#sw $t3, 0($s1)	
 ENDkeyboardbirdUP: jr $ra
 
+# WIN Function: This function is called when level 3 is done ($t1 = 12)
+# Repaint the entire screen blue, happy face, syscall to exit
+# Blue: #0ca6ed
+# Yellow: #f2ff03
+win:
+
+	lw $t0, displayAddress	# just to make sure that $t0 is right
+	
+	li $t3, 0x0ca6ed	# blue. We are using the old Sky register.
+	
+	addi $t9, $t0, 4096	# $t9 = $t0 + 4096
+	winscreenloop: 
+		addi $t9, $t9, -4
+		sw $t3, 0($t9)
+		bne $t9, $t0, winscreenloop
+	winscreenloopdone:
+	
+	# head
+	li $t1, 0xf2ff03	# yellow.
+	
+	addi $s1, $t0, 352
+	addi $s0, $t0, 288
+	wloop1:
+		addi $s1, $s1, -4
+		sw $t1, 0($s1)
+		sw $t1, 1920($s1)
+		bne $s1, $s0, wloop1
+		
+	addi $s1, $t0, 2208
+	addi $s0, $t0, 288
+	wloop2:
+		addi $s1, $s1, -128
+		sw $t1, 0($s1)
+		sw $t1, 60($s1)
+		bne $s1, $s0, wloop2
+		
+	# eyes
+	addi $s1, $t0, 816
+	sw $t1, -128($s1)
+	sw $t1, -4($s1)
+	sw $t1, 4($s1)
+	
+	addi $s1, $t0, 844
+	sw $t1, -128($s1)
+	sw $t1, -4($s1)
+	sw $t1, 4($s1)	
+	
+	# mouth
+	sw $t1, 1324($t0)
+	sw $t1, 1328($t0)
+	sw $t1, 1456($t0)
+	sw $t1, 1460($t0)
+	sw $t1, 1588($t0)
+	sw $t1, 1592($t0)
+	sw $t1, 1596($t0)
+	sw $t1, 1724($t0)
+	sw $t1, 1600($t0)
+	sw $t1, 1728($t0)
+	sw $t1, 1604($t0)
+	sw $t1, 1608($t0)
+	sw $t1, 1480($t0)
+	sw $t1, 1484($t0)
+	sw $t1, 1356($t0)
+	sw $t1, 1360($t0)
+	
+	# W
+	sw $t1, 2464($t0)
+	sw $t1, 2592($t0)
+	sw $t1, 2720($t0)
+	sw $t1, 2848($t0)
+	sw $t1, 2976($t0)
+	
+	sw $t1, 2852($t0)
+	
+	sw $t1, 2600($t0)
+	sw $t1, 2728($t0)
+	
+	sw $t1, 2860($t0)
+	
+	sw $t1, 2480($t0)
+	sw $t1, 2608($t0)
+	sw $t1, 2736($t0)
+	sw $t1, 2864($t0)
+	sw $t1, 2992($t0)
+	
+	# I
+	sw $t1, 2488($t0)
+	sw $t1, 2492($t0)
+	sw $t1, 2496($t0)
+	
+	sw $t1, 2620($t0)
+	sw $t1, 2748($t0)
+	sw $t1, 2876($t0)
+	
+	sw $t1, 3000($t0)
+	sw $t1, 3004($t0)
+	sw $t1, 3008($t0)
+	
+	#N
+	sw $t1, 2504($t0)
+	sw $t1, 2632($t0)
+	sw $t1, 2760($t0)
+	sw $t1, 2888($t0)
+	sw $t1, 3016($t0)
+	sw $t1, 2636($t0)
+	sw $t1, 2764($t0)
+	sw $t1, 2768($t0)
+	sw $t1, 2896($t0)
+	sw $t1, 2516($t0)
+	sw $t1, 2644($t0)
+	sw $t1, 2772($t0)
+	sw $t1, 2900($t0)
+	sw $t1, 3028($t0)
+	
+	# !
+	sw $t1, 2524($t0)
+	sw $t1, 2652($t0)
+	sw $t1, 2780($t0)
+	sw $t1, 2908($t0)
+	
+	sw $t1, 3164($t0)
+	
+	# congrats! (syscall to exit)
+	li $v0, 10
+	syscall
+	
+
+ENDwin:
+
 # DEATH Function: This function can be called when the bird crashes into something.
 # Repaint the entire screen black, sad face, syscall to exit ($v0 = 10), do not return to game loop.
 death:
@@ -348,7 +500,7 @@ death:
 	deathscreenloopdone:
 	
 	# head
-	li $t1, 0x9c1006
+	li $t1, 0x9c1006	# dark red colour
 	
 	addi $s1, $t0, 352
 	addi $s0, $t0, 288
@@ -381,6 +533,7 @@ death:
 	sw $t1, -4($s1)
 	sw $t1, 4($s1)
 	
+	# mouth
 	sw $t1, 1468($t0)
 	sw $t1, 1472($t0)
 	
@@ -454,6 +607,77 @@ trash:
 	sw $t3, 0($v0)
 	bne $v0, $t0, tloop 
 ENDtrash: jr $ra
+
+#Level colour : 6be86b
+#Level roman numeral : 096109
+# regular grass: $t2 = 0x339933
+lvl_1_grass:
+
+	# LVL
+	#L
+	li $t2, 0x6be86b	# Level colour into grass register
+	sw $t2, 3744($t0)
+	sw $t2, 3872($t0)
+	sw $t2, 4000($t0)
+	sw $t2, 4004($t0)
+	
+	#V
+	sw $t2, 3756($t0)
+	sw $t2, 3884($t0)
+	sw $t2, 4016($t0)
+	sw $t2, 3764($t0)
+	sw $t2, 3892($t0)
+	
+	#L
+	sw $t2, 3772($t0)
+	sw $t2, 3900($t0)
+	sw $t2, 4028($t0)
+	sw $t2, 4032($t0)
+	
+	# I
+	li $t2, 0x096109
+	sw $t2, 3784($t0)
+	sw $t2, 3788($t0)
+	sw $t2, 3792($t0)
+	sw $t2, 3916($t0)
+	sw $t2, 4040($t0)
+	sw $t2, 4044($t0)
+	sw $t2, 4048($t0)
+	
+	li $t2, 0x339933      # back to regular grass
+	
+		
+END_lvl_1_grass: jr $ra
+
+
+lvl_2_grass:
+	
+	# make II
+	li $t2, 0x096109	# roman numerals colour
+	sw $t2, 3796($t0)
+	sw $t2, 3924($t0)
+	sw $t2, 4052($t0)
+	sw $t2, 3800($t0)
+	sw $t2, 4056($t0)
+	
+	li $t2, 0x339933      # back to regular grass
+	
+END_lvl_2_grass: jr $ra
+
+lvl_3_grass:
+
+	# make III
+	li $t2, 0x096109	# roman numerals colour
+	sw $t2, 3804($t0)
+	sw $t2, 3932($t0)
+	sw $t2, 4060($t0)
+	sw $t2, 3808($t0)
+	sw $t2, 4064($t0)
+	
+	li $t2, 0x339933      # back to regular grass
+	
+END_lvl_3_grass: jr $ra
+
 
 # SKY function: change the sky colour, and paint everything.
 sky:
@@ -580,8 +804,9 @@ pipeCreator:
 	# 	make $t4 pink #fa07de
 	
 	colourchange:
-	beq $t4, 0xff9933, makeyellow
-	beq $t4, 0xe3d61b, makepink
+	beq $t1, 4, makeyellow
+	beq $t1, 8, makepink
+	j colourdone
 	makeyellow:
 		li $t4, 0xe3d61b
 		j colourdone
@@ -670,7 +895,11 @@ pipeCreator:
 	bne $v1, $0, thickness_loop
 	thickness_loop_end:
 	
+
+
 	
+		
+				
 	#for(i = 8, i != 0, i--){ # loop 8 times
 		#gap = randomNumInRange(minGap, maxGap)
 		#startOfHole = randomNumInRange(1, 29 - gap)
@@ -692,6 +921,10 @@ pipeCreator:
 	#00000000 TTTTTTTT GGGGGGGG SSSSSSSS
 
 ENDpipeCreator: jr $ra
+
+
+
+
 
 FinalPipePainter:
 	
