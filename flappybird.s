@@ -69,6 +69,10 @@ SQUARES:
 	li $v0, 32 # for now, we only want sleep (syscall, $v0 = 32)
 	li $a0, 1000 # $a0 = 1000- sysall will sleep for 1000 milliseconds = 1 sec each time.
 	
+	move $t1, $0	# starts our game counter at 0.
+	addi $sp, $sp, -4
+	sw $0, 0($sp)
+	
 	addi $s1, $t0, 124
 	addi $s2, $t0, 0
 	
@@ -106,6 +110,13 @@ STARTSQUARE:
 
 	jal trash
 	
+	# $t1 as game counter
+	# push $t1 = gc onto the stack
+	addi $sp, $sp, -4
+	sw $t1, 0($sp)
+	# load it with the bird colour 
+	li $t1, 0x771b80	# $t1 stores the purple colour code (bird)
+	
 	lw $s7, 0xffff0000($0)  # Load $s7 with value found in memory location 0xffff0000 = 0xffff0000 + 0. 
 	beq $s7, $0, birdDown	# if $s7 is 0, no button was pressed at all and we go down.
 	lw $s7, 0xffff0004($0)	# Load $s7 with value found in memory location 0xffff0004 = 0xffff0004 + 0
@@ -115,10 +126,31 @@ STARTSQUARE:
 	birdDown:
 	jal birdpaintDOWN
 	FlapDone:
+	# pop gc off of stack and into $t1 again.
+	lw $t1, 0($sp)
+	addi $sp, $sp, 4
+	
 	
 	# new loop cycle
 	bne $s1, $s2, continue
+	
+	addi $t1, $t1, 1
+	
+	li $s1, 4
+	l_two:
+	bne $t1, $s1, l_three
+		jal pipeCreator
+		j l_done
+	l_three:
+	li $s1, 8
+	bne $t1, $s1, l_done
+		jal pipeCreator
+		j l_done
+	l_done:
+	
+	
 	addi $s1, $t0, 124
+	
 	
 	# day/night
 	jal sky
@@ -168,7 +200,7 @@ ORG:
 	# build a single square given a colour.
 	blt $s3, $t9, orang1
 	bgt $s3, $s5, orang1
-		sw $t3, 0($s6)
+		sw $t3, 0($s6)	# $s6 + 0 = $s6
 		sw $t3, 4($s6)
 		j odone1
 	orang1:
@@ -198,9 +230,20 @@ ORG:
 	addi $s3, $s3, 128
 	j ORG
 ENDORG:
+	# pause
 	li $v0, 32
-	li $a0, 300
-	syscall # after the pipe is painted, we pause for 1 second.
+	beq $t1, 4, p2
+	beq $t1, 8, p3
+		li $a0, 300	# pause for 0.3 seconds
+		j pdone
+	p2:
+		li $a0, 150	# pause for 0.15 seconds
+		j pdone
+	p3:
+		li $a0, 50	# pause for 0.05 seconds
+		j pdone
+	pdone:
+	syscall 
 	j STARTSQUARE
 ENDSQUARE:
 
@@ -530,6 +573,24 @@ ENDbirddeathcheck:
 # Add "128" to the array (starting location; the conveyer belt will make this smaller as the pipes move)
 pipeCreator:
 # Function1 (default pipe thickness, min gap size, max gap size) (Each of the 3 levels sets these values)
+	
+	# if $t4 = orange 
+	# 	make $t4 yellow #e3d61b
+	# elif $t4 = yellow
+	# 	make $t4 pink #fa07de
+	
+	colourchange:
+	beq $t4, 0xff9933, makeyellow
+	beq $t4, 0xe3d61b, makepink
+	makeyellow:
+		li $t4, 0xe3d61b
+		j colourdone
+	makepink:
+		li $t4, 0xfa07de
+		j colourdone
+	colourdone:
+		
+		
 	li $v1, 32
 	
 	subi $t7, $t7, 1	# precondition: $t7 = maxGap was defined in Initialize function to at least 6		
@@ -629,9 +690,8 @@ pipeCreator:
 	
 	#00000000 00000000 00000000 00000000  	5-bit binary: biggest number is 11111 = 31. 
 	#00000000 TTTTTTTT GGGGGGGG SSSSSSSS
-	
-	jr $ra
-ENDpipeCreator:
+
+ENDpipeCreator: jr $ra
 
 FinalPipePainter:
 	
