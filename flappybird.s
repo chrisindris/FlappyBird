@@ -23,34 +23,33 @@
 # Which approved additional features have been implemented?
 # (See the assignment handout for the list of additional features)
 #
-# 1. More than one obstacles on the screen. (Option # 3)
-#    In the video demo above, only one obstacle is displayed on the screen at a time.
-#    Upgrade it by supporting displaying multiple obstacles at a time on the screen. 
-#    The positions of the obstacles should be properly randomized, of course.
+# 1. Additional Feature #3 - More than one obstacles on the screen.
+#   	In the video demo above, only one obstacle is displayed on the screen at a time.
+#    	Upgrade it by supporting displaying multiple obstacles at a time on the screen. 
+#    	The positions of the obstacles should be properly randomized, of course.
 #
-# 2. Levels. (Option # 5)
-#   The games progresses through a sequence of levels. 
-#   There is a screen that indicates the player has reached a new level. 
-#   Each level should be different from the previous level, e.g., increased difficulty, 
-#   different colours/shapes of objects, etc.
+# 2. Additional Feature #4 - Changing the game difficulty.
+#    	As the game progresses further, gradually increase the moving speed 
+#    	of the obstacles to make the game more challenging.
 #
-# 3. Changing the game difficulty. (Option # 4)
-#    As the game progresses further, gradually increase the moving speed 
-#    of the obstacles to make the game more challenging.
+# 3. Additional Feature #5 - Levels.
+#   	The games progresses through a sequence of levels. 
+#   	There is a screen that indicates the player has reached a new level. 
+#   	Each level should be different from the previous level, e.g., increased difficulty, 
+#   	different colours/shapes of objects, etc.
 #
-# 4. Background color fading from day to night back to day as game progress. (Option # 12)
+# 4. Additional Feature #12 - Sky Colour
+# 	Background color fading from day to night back to day as game progresses.
 #
 #
 # Any additional information that the TA needs to know:
-# - We have a winner screen and a death screen
-# - We have a total of three levels ( LVL I, LVL II, LVL III)
-# - When the player moves from one level to the next the speed of the game increases as the bird and the pipe moves faster.
-#
-
-
-
+# - 	We have a winner screen and a death screen
+# - 	We have a total of three levels ( LVL I, LVL II, LVL III); as the player progresses, the pipe colour changes
+#	(orange, yellow, pink respectively), the average hole width will shrink, the game will speed up (reducing the
+#	delay of the sleep syscall will make both bird and pipes move faster) and the level counter (located at the 
+#	bottom) will change to reflect the current level.	
+# 
 #####################################################################
-
 
 # Demo for painting
 #
@@ -63,13 +62,10 @@
 #
 .data
 	displayAddress:	.word	0x10008000
-	pipeLocationArray: .space 8		# 2 pipes on screen
-	pipeGapSizeThinknessArray: .space 32	# 8 pipes to choose from
 	
 	function1array: .space 32
 	function2array: .space 32
 	
-	current: .space 8
 	#pipeArray: .word  1, 2, 3	# pipeArray = [1, 2, 3]	(python)
 	#pipeArray: .space 4		# Array pipeArray[1] (Java)
 	#Sky: #33ccff (blue)
@@ -279,7 +275,7 @@ initialize:
 	li $t4, 0xff9933	# $t4 stores the orange colour code (pipe)
 	
 	li $t6, 10
-	li $t7, 11
+	li $t7, 14
 	
   		# Board Setup: Paint Sky and Grass
 	add $s1, $t0, $zero
@@ -342,7 +338,9 @@ keyboardbirdUP:
 	
 	sub $t0, $t0, $t8	# restore $t0
 	
+	ble $t8, 256, nottop
 	addi $t8, $t8, -256
+	nottop:
 	
 	add $t0, $t0, $t8 # brings us to the old location of the bird ($t0 + $t8)
 	
@@ -482,7 +480,6 @@ win:
 	# congrats! (syscall to exit)
 	li $v0, 10
 	syscall
-	
 
 ENDwin:
 
@@ -645,7 +642,6 @@ lvl_1_grass:
 	sw $t2, 4048($t0)
 	
 	li $t2, 0x339933      # back to regular grass
-	
 		
 END_lvl_1_grass: jr $ra
 
@@ -893,61 +889,10 @@ pipeCreator:
 	sw $s5, function2array($v1)     #       = [0][thickness][gap][start]
 	
 	bne $v1, $0, thickness_loop
-	thickness_loop_end:
-	
-
-
-	
-		
-				
-	#for(i = 8, i != 0, i--){ # loop 8 times
-		#gap = randomNumInRange(minGap, maxGap)
-		#startOfHole = randomNumInRange(1, 29 - gap)
-		#pipeList[i - 1] = new Pipe(thickness = 1, gap, startOfHole) # store in the array
-	#}
-	#return Fucntion1Array
-#Fucntion2 (pick a number from 1-8, thinkness from 1-4)
-	#for(i = 8, i != 0, i--){
-		#thickness = randomNumInRange(1, 4)
-		#baseArray = randomNumInRange(1, 8)
-		#function2array[i-1] = new Pipe(THICKNESS = thickness, baseArray = function1Array[baseArray - 1])
-	#}
-# Final pipe array  ( thick pipes from fucntion2, orginal pipes from function1)
-#pick randomly from Final pipe array and put on screen
-	#choice = randomNumInRange(0, 7) # 8 choices
-	#paint function2array[choice] on screen by painting the appropriate base array "thickness" times.
-	
-	#00000000 00000000 00000000 00000000  	5-bit binary: biggest number is 11111 = 31. 
-	#00000000 TTTTTTTT GGGGGGGG SSSSSSSS
+	thickness_loop_end:			
 
 ENDpipeCreator: jr $ra
 
-
-
-
-
-FinalPipePainter:
-	
-
-End_FinalPipePainter:
-
-# TODO: Conveyer Belt function (move the pipes from right to left)
-# Algorithm:
-conveyerBelt:
-	
-
-ENDconveyerBelt:
-
-# TODO: Level Creator Function
-# Generate 8 pipes (hole starting position, hole width), and set a pipe width for the level.
-#
-
-
-
-level:
-
-ENDlevel:	
-# EXIT Function: used to terminate.
 Exit:
 	li $v0, 10 # terminate the program gracefully
 	syscall
