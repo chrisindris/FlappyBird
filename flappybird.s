@@ -43,12 +43,15 @@
 #
 #
 # Any additional information that the TA needs to know:
-# - 	We have a winner screen and a death screen
+#
+# - 	We have a winner screen and a death screen.
+#
 # - 	We have a total of three levels ( LVL I, LVL II, LVL III); as the player progresses, the pipe colour changes
 #	(orange, yellow, pink respectively), the average hole width will shrink, the game will speed up (reducing the
 #	delay of the sleep syscall will make both bird and pipes move faster) and the level counter (located at the 
-#	bottom) will change to reflect the current level.	
-# 
+#	bottom) will change to reflect the current level.
+# 		
+# -	On some systems (Mac, Java2.7) the screen needs to be clicked to finish loading the black death and blue win screens.
 #####################################################################
 
 # Demo for painting
@@ -252,15 +255,20 @@ ORG:
 ENDORG:
 	# pause
 	li $v0, 32
+	
 	beq $t1, 4, p2
-	beq $t1, 8, p3
+	beq $t1, 5, p2
+	beq $t1, 6, p2
+	beq $t1, 7, p2
+	
+	bge $t1, 8, p3
 		li $a0, 300	# pause for 0.3 seconds
 		j pdone
 	p2:
 		li $a0, 150	# pause for 0.15 seconds
 		j pdone
 	p3:
-		li $a0, 100	# pause for 0.05 seconds
+		li $a0, 100	# pause for 0.1 seconds
 		j pdone
 	pdone:
 	syscall 
@@ -274,8 +282,8 @@ initialize:
 	li $t3, 0x33ccff	# $t3 stores the blue colour code (sky)
 	li $t4, 0xff9933	# $t4 stores the orange colour code (pipe)
 	
-	li $t6, 10
-	li $t7, 14
+	li $t6, 11
+	li $t7, 15
 	
   		# Board Setup: Paint Sky and Grass
 	add $s1, $t0, $zero
